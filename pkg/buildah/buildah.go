@@ -22,9 +22,9 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/creack/pty"
 	"github.com/ocibuilder/ocibuilder/common"
 	"github.com/ocibuilder/ocibuilder/pkg/apis/ocibuilder/v1alpha1"
-	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -249,12 +249,16 @@ func (b Buildah) Push(spec v1alpha1.OCIBuilderSpec) ([]io.ReadCloser, error) {
 		}
 
 		cmd := executor("buildah", pushCommand...)
-		out, err := pty.Start(cmd)
+
+		stdout, _ := cmd.StdoutPipe()
+		cmd.Start()
+
+		//out, err := pty.Start(cmd)
 		if err != nil {
 			log.WithError(err).Errorln("failed to execute buildah push...")
 			return nil, err
 		}
-		pushResponses = append(pushResponses, out)
+		pushResponses = append(pushResponses, stdout)
 
 		if err := cmd.Wait(); err != nil {
 			log.WithError(err).Errorln("error waiting for cmd execution")
@@ -263,18 +267,18 @@ func (b Buildah) Push(spec v1alpha1.OCIBuilderSpec) ([]io.ReadCloser, error) {
 
 		log.Infoln("buildah push has been executed")
 
-		if pushSpec.Purge {
-			purgeCommand := createPurgeCommand(pushImageName)
-			log.WithFields(logrus.Fields{"command": purgeCommand, "image": pushImageName}).Debug("purge command to be executed")
-
-			cmd = executor("buildah", purgeCommand...)
-			out, err = pty.Start(cmd)
-			if err != nil {
-				log.WithError(err).Errorln("failed to execute purge")
-				return nil, err
-			}
-			log.WithField("response", out).Infoln("images purged")
-		}
+		//if pushSpec.Purge {
+		//	purgeCommand := createPurgeCommand(pushImageName)
+		//	log.WithFields(logrus.Fields{"command": purgeCommand, "image": pushImageName}).Debug("purge command to be executed")
+		//
+		//	cmd = executor("buildah", purgeCommand...)
+		//	out, err = pty.Start(cmd)
+		//	if err != nil {
+		//		log.WithError(err).Errorln("failed to execute purge")
+		//		return nil, err
+		//	}
+		//	log.WithField("response", out).Infoln("images purged")
+		//}
 	}
 	return pushResponses, nil
 }

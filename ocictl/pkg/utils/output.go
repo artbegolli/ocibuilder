@@ -17,6 +17,8 @@ limitations under the License.
 package utils
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 	"os"
 
@@ -61,6 +63,16 @@ func Output(output io.ReadCloser) error {
 		}
 		log.WithError(err).Errorln("error copying output to stdout")
 		return err
+	}
+	return nil
+}
+
+func StdOutput(output io.ReadCloser) error {
+	scanner := bufio.NewScanner(output)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		m := scanner.Text()
+		fmt.Println(m)
 	}
 	return nil
 }

@@ -116,7 +116,7 @@ func (b *buildCmd) run(args []string) error {
 
 			for idx, imageResponse := range res {
 				log.WithField("step: ", idx).Infoln("running build step")
-				if err := utils.Output(imageResponse); err != nil {
+				if err := utils.StdOutput(imageResponse); err != nil {
 					return err
 				}
 			}
