@@ -62,12 +62,16 @@ func (b *Buildah) Build(spec v1alpha1.OCIBuilderSpec) ([]io.ReadCloser, error) {
 		log.WithField("command", buildCommand).Debug("build command to be executed")
 
 		cmd := executor("buildah", buildCommand...)
-		out, err := pty.Start(cmd)
-		if err != nil {
+		stdout, _ := cmd.StdoutPipe()
+		stderr, _ := cmd.StderrPipe()
+
+		if err := cmd.Start(); err != nil {
 			log.WithError(err).Errorln("failed to execute buildah bud...")
 			return nil, err
 		}
-		buildResponses = append(buildResponses, out)
+
+		log.Debugln("buildah bud command has been executed")
+		buildResponses = append(buildResponses, stdout, stderr)
 
 		b.Metadata = append(b.Metadata, v1alpha1.ImageMeta{
 			BuildFile: fullPath,
@@ -78,12 +82,12 @@ func (b *Buildah) Build(spec v1alpha1.OCIBuilderSpec) ([]io.ReadCloser, error) {
 			log.WithFields(logrus.Fields{"command": purgeCommand, "image": imageName}).Debug("purge command to be executed")
 
 			cmd = executor("buildah", purgeCommand...)
-			out, err = pty.Start(cmd)
+			stdout, _ := cmd.StdoutPipe()
 			if err != nil {
 				log.WithError(err).Errorln("failed to execute purge")
 				return nil, err
 			}
-			log.WithField("response", out).Infoln("images purged")
+			log.WithField("response", stdout).Infoln("images purged")
 		}
 	}
 	return buildResponses, nil
@@ -241,31 +245,27 @@ func (b Buildah) Push(spec v1alpha1.OCIBuilderSpec) ([]io.ReadCloser, error) {
 		}
 
 		cmd := executor("buildah", pushCommand...)
-
-		stdout, _ := cmd.StdoutPipe()
-		cmd.Start()
-
-		//out, err := pty.Start(cmd)
+		out, err := pty.Start(cmd)
 		if err != nil {
 			log.WithError(err).Errorln("failed to execute buildah push...")
 			return nil, err
 		}
-		pushResponses = append(pushResponses, stdout)
+		pushResponses = append(pushResponses, out)
 
 		log.Infoln("buildah push has been executed")
 
-		//if pushSpec.Purge {
-		//	purgeCommand := createPurgeCommand(pushImageName)
-		//	log.WithFields(logrus.Fields{"command": purgeCommand, "image": pushImageName}).Debug("purge command to be executed")
-		//
-		//	cmd = executor("buildah", purgeCommand...)
-		//	out, err = pty.Start(cmd)
-		//	if err != nil {
-		//		log.WithError(err).Errorln("failed to execute purge")
-		//		return nil, err
-		//	}
-		//	log.WithField("response", out).Infoln("images purged")
-		//}
+		if pushSpec.Purge {
+			purgeCommand := createPurgeCommand(pushImageName)
+			log.WithFields(logrus.Fields{"command": purgeCommand, "image": pushImageName}).Debug("purge command to be executed")
+
+			cmd = executor("buildah", purgeCommand...)
+			out, err = pty.Start(cmd)
+			if err != nil {
+				log.WithError(err).Errorln("failed to execute purge")
+				return nil, err
+			}
+			log.WithField("response", out).Infoln("images purged")
+		}
 	}
 	return pushResponses, nil
 }

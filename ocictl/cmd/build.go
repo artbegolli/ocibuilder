@@ -103,6 +103,7 @@ func (b *buildCmd) run(args []string) error {
 					return err
 				}
 			}
+			log.Infoln("build has been completed")
 			d.Clean()
 		}
 
@@ -121,10 +122,11 @@ func (b *buildCmd) run(args []string) error {
 
 			for idx, imageResponse := range res {
 				log.WithField("step: ", idx).Infoln("running build step")
-				if err := utils.StdOutput(imageResponse); err != nil {
+				if err := utils.Output(imageResponse); err != nil {
 					return err
 				}
 			}
+			log.Infoln("build has been completed")
 			b.Clean()
 		}
 
